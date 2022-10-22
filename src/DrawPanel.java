@@ -8,8 +8,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private ScreenConverter sc;
     private Line ox, oy;
     private Line currentLine = null;
-    private java.util.List<Line> allLines = new ArrayList<>();
+    private static java.util.List<Line> allLines = new ArrayList<>();
     private Line editingLine = null;
+    private RealPoint editPoint = null;
 
     public DrawPanel() {
         sc = new ScreenConverter(-2, 2, 4, 4, 800, 600);
@@ -58,11 +59,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         g.drawLine(p1.getC(), p1.getR(), p2.getC(), p2.getR());
     }
 
-    private static boolean isNear(ScreenPoint p1, ScreenPoint p2, double eps) {
-        int dx = p1.getC() - p2.getC();
-        int dy = p1.getR() - p2.getR();
-        int d2 = dx*dx - dy*dy;
-        return d2<eps;
+    private static boolean isNear(ScreenConverter sc, RealPoint rp, ScreenPoint sp, int eps) {
+        ScreenPoint p = sc.r2s(rp);
+        return eps*eps > (p.getR() - sp.getR())*(p.getR() - sp.getR())+(p.getC()-sp.getC())*(p.getC()-sp.getC());
     }
 
     private static double distanceToLine (ScreenPoint lp1, ScreenPoint lp2, ScreenPoint cp) {
@@ -87,16 +86,37 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private static boolean closeToLine(ScreenConverter sc, Line l, ScreenPoint p, int eps) {
         ScreenPoint a = sc.r2s(l.getP1());
         ScreenPoint b = sc.r2s(l.getP2());
-        return isNear(a, p, eps) || isNear(b, p, eps) || (distanceToLine(a, b, p) < eps && isPointInRect(a, b, p));
+        RealPoint ra = l.getP1();
+        RealPoint rb = l.getP2();
+        return isNear(sc, ra, p, eps) || isNear(sc, rb, p, eps) || (distanceToLine(a, b, p) < eps && isPointInRect(a, b, p));
     }
 
     private static Line findLine (ScreenConverter sc, java.util.List<Line> lines, ScreenPoint searchPoint,int eps) {
+        Line answer = null;
         for (Line l : lines) {
             if (closeToLine(sc, l, searchPoint, eps)) {
                 return l;
             }
         }
         return null;
+        /*Line answer = null;
+        for (Line l : lines) {
+            ScreenPoint p1 = sc.r2s(l.getP1());
+            ScreenPoint p2 = sc.r2s(l.getP2());
+            if ((p1.getR()-eps<sp.getR() && sp.getR() < p2.getR()) &&
+                    (p1.getR()+eps>sp.getR() && sp.getR() > p2.getR())) {
+                double ax = p1.getR() - p2.getR();
+                double ay = p1.getC() - p2.getC();
+                double px = p1.getR();
+                double py = p1.getC();
+                double qx = sp.getR();
+                double qy = sp.getC();
+
+                double y =(qx-px+py*ax/ay+qy*ay/ax)/(ax/ay +)
+                double x =()
+            }
+        }
+        return null;*/
     }
 
 
@@ -116,6 +136,8 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                 if (x != null) {
                     editingLine = x;
                 } else {
+//                    ScreenPoint p = new ScreenPoint(e.getX(), e.getY());
+//                    RealPoint rp = new RealPoint(p.getC(), p.getR());
                     RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
                     currentLine = new Line(p, p);
                 }
