@@ -2,7 +2,7 @@ package drawers;
 
 import java.awt.*;
 
-public class DDALineDrawer implements LineDrawer{
+public class DDALineDrawer implements LineDrawer {
     private PixelDrawer pd;
 
     public DDALineDrawer(PixelDrawer pd) {
@@ -10,22 +10,21 @@ public class DDALineDrawer implements LineDrawer{
     }
 
     @Override
-    public void drawLine(int x1, int y1, int x2, int y2) {
+    public void drawLine(int x1, int y1, int x2, int y2, Color c) {
+        int lx = Math.abs(x2 - x1);
+        int ly = Math.abs(y2 - y1);
 
-        if(x2 < x1){
-            int t = x1;
-            x1 = x2;
-            x2 = t;
-            t = y1;
-            y1 = y2;
-            y2 = t;
-        }
+        int l = Math.max(lx, ly);
+        if (l != 0) {
+            double dx = (double) (x2 - x1) / l;
+            double dy = (double) (y2 - y1) / l;
+            double x = x1;
+            double y = y1;
 
-        int dx = x2 - x1;
-        double dy = y2 - y1;
-        if(dx != 0){
-            for (int i = 0; i <= dx; i++) {
-                pd.drawPixel(x1 + i, (int)(y1 + i * dy / dx), Color.BLACK);
+            for (l ++; l> 0; l--) {
+                x += dx;
+                y += dy;
+                pd.drawPixel((int) x, (int) y, c);
             }
         }
     }

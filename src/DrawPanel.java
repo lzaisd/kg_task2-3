@@ -1,3 +1,5 @@
+import drawers.*;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -5,12 +7,14 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
 public class DrawPanel extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
-    private ScreenConverter sc;
-    private Line ox, oy;
+    private final ScreenConverter sc;
+    private final Line ox;
+    private final Line oy;
     private Line currentLine = null;
     private static java.util.List<Line> allLines = new ArrayList<>();
     private Line editingLine = null;
     private RealPoint editPoint = null;
+    private final int EPS = 5;
 
     public DrawPanel() {
         sc = new ScreenConverter(-2, 2, 4, 4, 800, 600);
@@ -31,32 +35,34 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         g.setColor(Color.WHITE);
         g.fillRect(0, 0 , getWidth(), getHeight());
 
-        g.setColor(Color.BLUE);
-        drawLine(g, sc, ox);
-        drawLine(g, sc, oy);
+//        g.setColor(Color.BLUE);
+        drawLine(g, sc, ox, Color.BLUE);
+        drawLine(g, sc, oy, Color.BLUE);
 
-        g.setColor(Color.BLACK);
+//        g.setColor(Color.BLACK);
         for (Line l: allLines) {
-            drawLine(g, sc, l);
+            drawLine(g, sc, l, Color.BLACK);
         }
         if (currentLine != null) {
-            g.setColor(Color.red);
-            drawLine(g, sc, currentLine);
+//            g.setColor(Color.red);
+            drawLine(g, sc, currentLine, Color.red);
         }
 
         if (editingLine != null) {
-            g.setColor(Color.green);
-            drawLine(g, sc, editingLine);
+//            g.setColor(Color.green);
+            drawLine(g, sc, editingLine,Color.green);
         }
 
         origG.drawImage(bi, 0 , 0, null);
         g.dispose();
     }
 
-    private static void drawLine(Graphics2D g, ScreenConverter sc, Line l) {
+    private static void drawLine(Graphics2D g, ScreenConverter sc, Line l, Color c) {
         ScreenPoint p1 = sc.r2s(l.getP1());
         ScreenPoint p2 = sc.r2s(l.getP2());
-        g.drawLine(p1.getC(), p1.getR(), p2.getC(), p2.getR());
+//        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
+        br.drawLine(p1.getC(), p1.getR(), p2.getC(), p2.getR(), c);
     }
 
     private static boolean isNear(ScreenConverter sc, RealPoint rp, ScreenPoint sp, int eps) {
@@ -99,24 +105,6 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             }
         }
         return null;
-        /*Line answer = null;
-        for (Line l : lines) {
-            ScreenPoint p1 = sc.r2s(l.getP1());
-            ScreenPoint p2 = sc.r2s(l.getP2());
-            if ((p1.getR()-eps<sp.getR() && sp.getR() < p2.getR()) &&
-                    (p1.getR()+eps>sp.getR() && sp.getR() > p2.getR())) {
-                double ax = p1.getR() - p2.getR();
-                double ay = p1.getC() - p2.getC();
-                double px = p1.getR();
-                double py = p1.getC();
-                double qx = sp.getR();
-                double qy = sp.getC();
-
-                double y =(qx-px+py*ax/ay+qy*ay/ax)/(ax/ay +)
-                double x =()
-            }
-        }
-        return null;*/
     }
 
 
@@ -132,7 +120,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             prevPoint = new ScreenPoint(e.getX(), e.getY());
         } else if (SwingUtilities.isLeftMouseButton(e)){
             if (editingLine == null) {
-                Line x = findLine(sc, allLines, new ScreenPoint(e.getX(), e.getY()), 3);
+                Line x = findLine(sc, allLines, new ScreenPoint(e.getX(), e.getY()), EPS);
                 if (x != null) {
                     editingLine = x;
                 } else {
@@ -142,7 +130,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                     currentLine = new Line(p, p);
                 }
             } else {
-                if (closeToLine(sc, editingLine, new ScreenPoint(e.getX(), e.getY()), 3)) {
+                if (closeToLine(sc, editingLine, new ScreenPoint(e.getX(), e.getY()), EPS)) {
 
                 } else {
                     editingLine = null;
@@ -164,7 +152,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             }
         } else if (SwingUtilities.isMiddleMouseButton(e)) {
             if (editingLine != null) {
-                if (closeToLine(sc, editingLine, new ScreenPoint(e.getX(), e.getY()), 4)) {
+                if (closeToLine(sc, editingLine, new ScreenPoint(e.getX(), e.getY()), EPS)) {
                     allLines.remove(editingLine);
                     editingLine = null;
                 }
