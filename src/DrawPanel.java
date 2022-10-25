@@ -11,7 +11,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private final Line ox;
     private final Line oy;
     private Line currentLine = null;
+    private Polygon currentPolygon = null;
     private static java.util.List<Line> allLines = new ArrayList<>();
+    private java.util.List<Polygon> allPolygons = new ArrayList<>();
     private Line editingLine = null;
     private RealPoint editPoint = null;
     private final int EPS = 5;
@@ -39,19 +41,21 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         drawLine(g, sc, ox, Color.BLUE);
         drawLine(g, sc, oy, Color.BLUE);
 
-//        g.setColor(Color.BLACK);
         for (Line l: allLines) {
             drawLine(g, sc, l, Color.BLACK);
         }
+
         if (currentLine != null) {
-//            g.setColor(Color.red);
             drawLine(g, sc, currentLine, Color.red);
         }
-
-        if (editingLine != null) {
-//            g.setColor(Color.green);
-            drawLine(g, sc, editingLine,Color.green);
+        if (editPoint != null) {
+            drawEditPoint(g, sc, editPoint, Color.green);
         }
+
+        if (currentPolygon != null) {
+
+        }
+
 
         origG.drawImage(bi, 0 , 0, null);
         g.dispose();
@@ -60,10 +64,27 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private static void drawLine(Graphics2D g, ScreenConverter sc, Line l, Color c) {
         ScreenPoint p1 = sc.r2s(l.getP1());
         ScreenPoint p2 = sc.r2s(l.getP2());
-//        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
-        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
-        br.drawLine(p1.getC(), p1.getR(), p2.getC(), p2.getR(), c);
+        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+//        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
+        dda.drawLine(p1.getC(), p1.getR(), p2.getC(), p2.getR(), c);
     }
+
+    private static void drawEditPoint(Graphics2D g, ScreenConverter sc, RealPoint rp, Color c) {
+        ScreenPoint p = sc.r2s(rp);
+        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+//        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
+
+        dda.drawLine(p.getC() - 3, p.getR(), p.getC() + 3, p.getR(), c);
+        dda.drawLine(p.getC(), p.getR() - 3, p.getC(), p.getR() + 3, c);
+    }
+
+    private static void drawPolygon(Graphics2D g, ScreenConverter sc, Polygon polygon, Color c) {
+        java.util.List<RealPoint> polyList = polygon.getPointList();
+        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+//        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
+        //todo цикл с рисованием многоугольника
+    }
+
 
     private static boolean isNear(ScreenConverter sc, RealPoint rp, ScreenPoint sp, int eps) {
         ScreenPoint p = sc.r2s(rp);
@@ -119,21 +140,21 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         if (SwingUtilities.isRightMouseButton(e)) {
             prevPoint = new ScreenPoint(e.getX(), e.getY());
         } else if (SwingUtilities.isLeftMouseButton(e)){
-            if (editingLine == null) {
-                Line x = findLine(sc, allLines, new ScreenPoint(e.getX(), e.getY()), EPS);
-                if (x != null) {
-                    editingLine = x;
-                } else {
-//                    ScreenPoint p = new ScreenPoint(e.getX(), e.getY());
-//                    RealPoint rp = new RealPoint(p.getC(), p.getR());
-                    RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-                    currentLine = new Line(p, p);
-                }
-            } else {
-                if (closeToLine(sc, editingLine, new ScreenPoint(e.getX(), e.getY()), EPS)) {
 
-                } else {
-                    editingLine = null;
+            if (currentLine == null) {
+                RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+                currentLine = new Line(p, p);
+                editPoint = null;
+            }
+            if (allLines.size() > 0 && allLines.get(0) != null) {
+                ScreenPoint currentPoint = new ScreenPoint(e.getX(), e.getY());
+                Line closestLine = findLine(sc, allLines, new ScreenPoint(e.getX(), e.getY()), EPS);
+                if (closestLine != null) {
+                    if (isNear(sc, closestLine.getP1(), currentPoint, EPS)) {
+                        editPoint = closestLine.getP1();
+                    } else if (isNear(sc, closestLine.getP2(), currentPoint, EPS)) {
+                        editPoint = closestLine.getP2();
+                    }
                 }
             }
         }
@@ -149,6 +170,13 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                 currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
                 allLines.add(currentLine);
                 currentLine = null;
+                repaint();
+            }
+            if (editPoint != null) {
+                RealPoint rp = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+                editPoint.setX(rp.getX());
+                editPoint.setY(rp.getY());
+                editPoint = null;
             }
         } else if (SwingUtilities.isMiddleMouseButton(e)) {
             if (editingLine != null) {
@@ -183,8 +211,11 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         } else if (SwingUtilities.isLeftMouseButton(e)){
             if (currentLine != null) {
                 currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
-            } else if (editingLine != null) {
-
+            }
+            if (editPoint != null) {
+                RealPoint rp = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+                editPoint.setX(rp.getX());
+                editPoint.setY(rp.getY());
             }
         }
         repaint();
