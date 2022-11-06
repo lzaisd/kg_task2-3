@@ -1,4 +1,5 @@
 import drawers.*;
+import figures.DescribingRectangle;
 import figures.Line;
 import figures.Polygon;
 import points.RealPoint;
@@ -17,9 +18,11 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private final Line oy;
     private Line currentLine = null;
     private figures.Polygon currentPolygon = null;
-    private  java.util.List<Line> allLines = new ArrayList<>();
+    private java.util.List<Line> allLines = new ArrayList<>();
     private java.util.List<figures.Polygon> allPolygons = new ArrayList<>();
     private figures.Polygon editPolygon = null;
+    private DescribingRectangle descRect = null;
+
 
     private final int EPS = 5;
 
@@ -40,13 +43,12 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         BufferedImage bi = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = bi.createGraphics();
         g.setColor(Color.WHITE);
-        g.fillRect(0, 0 , getWidth(), getHeight());
+        g.fillRect(0, 0, getWidth(), getHeight());
 
-//        g.setColor(Color.BLUE);
         drawLine(g, sc, ox, Color.BLUE);
         drawLine(g, sc, oy, Color.BLUE);
 
-        for (Line l: allLines) {
+        for (Line l : allLines) {
             drawLine(g, sc, l, Color.BLACK);
         }
 
@@ -54,64 +56,75 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             drawLine(g, sc, currentLine, Color.red);
         }
 
-        if (editPolygon != null) {
-            drawPolygon(g, sc, editPolygon, Color.green);
+        if (currentPolygon != null) {
+            drawPolygon(g, sc, currentPolygon, Color.green);
+        }
+
+        if (descRect != null) {
+            drawDescribingRect(g, sc, descRect, Color.green);
         }
 
 
-        origG.drawImage(bi, 0 , 0, null);
+        origG.drawImage(bi, 0, 0, null);
         g.dispose();
     }
 
     private static void drawLine(Graphics2D g, ScreenConverter sc, Line l, Color c) {
         ScreenPoint p1 = sc.r2s(l.getP1());
         ScreenPoint p2 = sc.r2s(l.getP2());
-        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+        DDALineDrawer dda = new DDALineDrawer(new GraphicsPixelDrawer(g));
 //        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
         dda.drawLine(p1.getC(), p1.getR(), p2.getC(), p2.getR(), c);
     }
 
     private static void drawEditPoint(Graphics2D g, ScreenConverter sc, RealPoint rp, Color c) {
         ScreenPoint p = sc.r2s(rp);
-        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+        DDALineDrawer dda = new DDALineDrawer(new GraphicsPixelDrawer(g));
 //        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
 
         dda.drawLine(p.getC() - 3, p.getR(), p.getC() + 3, p.getR(), c);
         dda.drawLine(p.getC(), p.getR() - 3, p.getC(), p.getR() + 3, c);
     }
 
-    private static void drawPolygon(Graphics2D g, ScreenConverter sc, figures.Polygon polygon, Color c) {
-        java.util.List<RealPoint> polyList = polygon.getPointList();
-        DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
+    private static void drawDescribingRect(Graphics2D g, ScreenConverter sc, DescribingRectangle dRect, Color c) {
+        DDALineDrawer dda = new DDALineDrawer(new GraphicsPixelDrawer(g));
 //        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
-        for (int i = 0; i < polygon.getPointList().size() - 1; i ++) {
+        for (int i = 0; i < dRect.getPointList().size() - 1; i++) {
+            dda.drawLine((int) dRect.getPointList().get(i).getX(), (int) dRect.getPointList().get(i).getY(), (int) dRect.getPointList().get(i + 1).getX(), (int) dRect.getPointList().get(i + 1).getY(), c);
+        }
+    }
 
+    private static void drawPolygon(Graphics2D g, ScreenConverter sc, Polygon poly, Color c) {
+        DDALineDrawer dda = new DDALineDrawer(new GraphicsPixelDrawer(g));
+//        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
+        for (int i = 0; i < poly.getPointList().size() - 1; i++) {
+            dda.drawLine((int) poly.getPointList().get(i).getX(), (int) poly.getPointList().get(i).getY(), (int) poly.getPointList().get(i + 1).getX(), (int) poly.getPointList().get(i + 1).getY(), c);
         }
     }
 
 
     private static boolean isNear(ScreenConverter sc, RealPoint rp, ScreenPoint sp, int eps) {
         ScreenPoint p = sc.r2s(rp);
-        return eps*eps > (p.getR() - sp.getR())*(p.getR() - sp.getR())+(p.getC()-sp.getC())*(p.getC()-sp.getC());
+        return eps * eps > (p.getR() - sp.getR()) * (p.getR() - sp.getR()) + (p.getC() - sp.getC()) * (p.getC() - sp.getC());
     }
 
-    private static double distanceToLine (ScreenPoint lp1, ScreenPoint lp2, ScreenPoint cp) {
+    private static double distanceToLine(ScreenPoint lp1, ScreenPoint lp2, ScreenPoint cp) {
         double a = lp2.getR() - lp1.getR();
         double b = -(lp2.getC() - lp1.getC());
         //b*x-a*y + cp.getC()*b + cp.getR()*a = 0
         //a*x+b*y + a*lp1.getC() - b*lp1.getR() = 0
-        double e = cp.getC()*b + cp.getR()*a;
-        double f = a*lp1.getC() - b*lp1.getR();
-        double y = (a*e - b*f) / (a*a + b*b);
-        double x = (a * y - e)/b;
-        return Math.sqrt((cp.getC()-x)* (cp.getC()-x) + (cp.getR() - y)*(cp.getR() - y));
+        double e = cp.getC() * b + cp.getR() * a;
+        double f = a * lp1.getC() - b * lp1.getR();
+        double y = (a * e - b * f) / (a * a + b * b);
+        double x = (a * y - e) / b;
+        return Math.sqrt((cp.getC() - x) * (cp.getC() - x) + (cp.getR() - y) * (cp.getR() - y));
     }
 
     private static boolean isPointInRect(ScreenPoint pr1, ScreenPoint pr2, ScreenPoint cp) {
         return cp.getC() >= Math.min(pr1.getC(), pr2.getC()) &&
-               cp.getC() <= Math.max(pr1.getC(), pr2.getC()) &&
-               cp.getR() >= Math.min(pr1.getR(), pr2.getR()) &&
-               cp.getR() <= Math.max(pr1.getR(), pr2.getR());
+                cp.getC() <= Math.max(pr1.getC(), pr2.getC()) &&
+                cp.getR() >= Math.min(pr1.getR(), pr2.getR()) &&
+                cp.getR() <= Math.max(pr1.getR(), pr2.getR());
     }
 
     private static boolean closeToLine(ScreenConverter sc, Line l, ScreenPoint p, int eps) {
@@ -122,7 +135,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         return isNear(sc, ra, p, eps) || isNear(sc, rb, p, eps) || (distanceToLine(a, b, p) < eps && isPointInRect(a, b, p));
     }
 
-    private static Line findLine (ScreenConverter sc, java.util.List<Line> lines, ScreenPoint searchPoint,int eps) {
+    private static Line findLine(ScreenConverter sc, java.util.List<Line> lines, ScreenPoint searchPoint, int eps) {
         Line answer = null;
         for (Line l : lines) {
             if (closeToLine(sc, l, searchPoint, eps)) {
@@ -132,10 +145,13 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         return null;
     }
 
-    private static figures.Polygon findPolygon (ScreenConverter sc, java.util.List<figures.Polygon> polygons, ScreenPoint searchPoint, int eps) {
-        for (figures.Polygon poly: polygons) {
+    private static figures.Polygon findPolygon(ScreenConverter sc, java.util.List<figures.Polygon> polygons, ScreenPoint searchPoint, int eps) {
+        for (figures.Polygon poly : polygons) {
             for (int i = 1; i < poly.getPointList().size() - 1; i++) {
-                if (closeToLine(sc, new Line(poly.getPointList().get(i - 1), poly.getPointList().get(i)), searchPoint, eps)) {
+                /*if (closeToLine(sc, new Line(poly.getPointList().get(i - 1), poly.getPointList().get(i)), searchPoint, eps)) {
+                    return poly;
+                }*/
+                if (isNear(sc, poly.getPointList().get(i), searchPoint, eps)) {
                     return poly;
                 }
             }
@@ -150,34 +166,24 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     }
 
     private ScreenPoint prevPoint = null;
+
     @Override
     public void mousePressed(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
             prevPoint = new ScreenPoint(e.getX(), e.getY());
-        } else if (SwingUtilities.isLeftMouseButton(e)){
-
+        } else if (SwingUtilities.isLeftMouseButton(e)) {
             if (currentLine == null) {
-                if (currentPolygon == null) {
-                    RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-                    currentLine = new Line(p, p);
-                    currentPolygon = new Polygon();
-                    currentPolygon.add(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
-                } else {
-
-                }
-
+                RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+                currentLine = new Line(p, p);
+                currentPolygon = new Polygon();
+                currentPolygon.add(p);
+            } else if (allPolygons.size() != 0) {
+                Polygon edit = findPolygon(sc, allPolygons, new ScreenPoint(e.getX(), e.getY()), EPS);
+                if (edit != null) {
+                    descRect = edit.getDescRect();
+                    editPolygon = edit;
+                } else editPolygon = null;
             }
-            /*if (allLines.size() > 0 && allLines.get(0) != null) {
-                points.ScreenPoint currentPoint = new points.ScreenPoint(e.getX(), e.getY());
-                figures.Line closestLine = findLine(sc, allLines, new points.ScreenPoint(e.getX(), e.getY()), EPS);
-                if (closestLine != null) {
-                    if (isNear(sc, closestLine.getP1(), currentPoint, EPS)) {
-                        editPoint = closestLine.getP1();
-                    } else if (isNear(sc, closestLine.getP2(), currentPoint, EPS)) {
-                        editPoint = closestLine.getP2();
-                    }
-                }
-            }*/
         }
         repaint();
     }
@@ -186,9 +192,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     public void mouseReleased(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
             prevPoint = null;
-        } else if (SwingUtilities.isLeftMouseButton(e)){
+        } else if (SwingUtilities.isLeftMouseButton(e)) {
             if (currentLine != null) {
-                if (isNear(sc, currentPolygon.getFirstPoint(), new ScreenPoint(e.getX(), e.getY()), EPS)) {
+                if ( isNear(sc, currentPolygon.getFirstPoint(), new ScreenPoint(e.getX(), e.getY()), EPS)) {
                     currentLine.setP2(currentPolygon.getFirstPoint());
                     allLines.add(currentLine);
                     currentLine = null;
@@ -200,12 +206,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                     currentLine = null;
                     currentPolygon.add(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
                 }
-                repaint();
-            } else if (allPolygons != null) {
-                editPolygon = findPolygon(sc, allPolygons,  new ScreenPoint(e.getX(), e.getY()), EPS);
-                if (editPolygon != null) {
+            } else {
 
-                }
+                repaint();
             }
         } else if (SwingUtilities.isMiddleMouseButton(e)) {
             /*if (editingLine != null) {
@@ -237,8 +240,8 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             RealPoint delta = p2.minus(p1);
             sc.moveCorner(delta);
             prevPoint = curPoint;
-        } else if (SwingUtilities.isLeftMouseButton(e)){
-            if (currentLine != null) {
+        } else if (SwingUtilities.isLeftMouseButton(e)) {
+            if (currentLine != null && allPolygons.size() == 0) {
                 currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
             }
 
@@ -256,10 +259,11 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     }
 
     private static final double SCALE_STEP = 0.1;
+
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         int clicks = e.getWheelRotation();
-        double coef = 1 + SCALE_STEP*(clicks < 0? -1 : 1);
+        double coef = 1 + SCALE_STEP * (clicks < 0 ? -1 : 1);
         double scale = 1;
         for (int i = Math.abs(clicks); i > 0; i--) {
             scale *= coef;
