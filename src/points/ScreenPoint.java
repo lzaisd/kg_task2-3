@@ -1,3 +1,5 @@
+package points;
+
 public class ScreenPoint {
     private final int r, c;
 

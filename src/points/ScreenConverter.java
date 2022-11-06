@@ -1,3 +1,8 @@
+package points;
+
+import points.RealPoint;
+import points.ScreenPoint;
+
 public class ScreenConverter {
     private double cx, cy, rw, rh;
     private int sw, sh;

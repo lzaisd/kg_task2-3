@@ -1,3 +1,5 @@
+package points;
+
 public class RealPoint {
     private double x, y;
 

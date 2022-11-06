@@ -1,3 +1,7 @@
+package figures;
+
+import points.RealPoint;
+
 public class Line {
     private RealPoint p1, p2;
 

@@ -1,4 +1,9 @@
 import drawers.*;
+import figures.Line;
+import figures.Polygon;
+import points.RealPoint;
+import points.ScreenConverter;
+import points.ScreenPoint;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,11 +16,11 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private final Line ox;
     private final Line oy;
     private Line currentLine = null;
-    private Polygon currentPolygon = null;
-    private static java.util.List<Line> allLines = new ArrayList<>();
-    private java.util.List<Polygon> allPolygons = new ArrayList<>();
-    private Line editingLine = null;
-    private RealPoint editPoint = null;
+    private figures.Polygon currentPolygon = null;
+    private  java.util.List<Line> allLines = new ArrayList<>();
+    private java.util.List<figures.Polygon> allPolygons = new ArrayList<>();
+    private figures.Polygon editPolygon = null;
+
     private final int EPS = 5;
 
     public DrawPanel() {
@@ -48,12 +53,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         if (currentLine != null) {
             drawLine(g, sc, currentLine, Color.red);
         }
-        if (editPoint != null) {
-            drawEditPoint(g, sc, editPoint, Color.green);
-        }
 
-        if (currentPolygon != null) {
-
+        if (editPolygon != null) {
+            drawPolygon(g, sc, editPolygon, Color.green);
         }
 
 
@@ -78,11 +80,13 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         dda.drawLine(p.getC(), p.getR() - 3, p.getC(), p.getR() + 3, c);
     }
 
-    private static void drawPolygon(Graphics2D g, ScreenConverter sc, Polygon polygon, Color c) {
+    private static void drawPolygon(Graphics2D g, ScreenConverter sc, figures.Polygon polygon, Color c) {
         java.util.List<RealPoint> polyList = polygon.getPointList();
         DDALineDrawer dda  = new DDALineDrawer(new GraphicsPixelDrawer(g));
 //        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
-        //todo цикл с рисованием многоугольника
+        for (int i = 0; i < polygon.getPointList().size() - 1; i ++) {
+
+        }
     }
 
 
@@ -128,6 +132,17 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         return null;
     }
 
+    private static figures.Polygon findPolygon (ScreenConverter sc, java.util.List<figures.Polygon> polygons, ScreenPoint searchPoint, int eps) {
+        for (figures.Polygon poly: polygons) {
+            for (int i = 1; i < poly.getPointList().size() - 1; i++) {
+                if (closeToLine(sc, new Line(poly.getPointList().get(i - 1), poly.getPointList().get(i)), searchPoint, eps)) {
+                    return poly;
+                }
+            }
+        }
+        return null;
+    }
+
 
     @Override
     public void mouseClicked(MouseEvent e) {
@@ -142,13 +157,19 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         } else if (SwingUtilities.isLeftMouseButton(e)){
 
             if (currentLine == null) {
-                RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-                currentLine = new Line(p, p);
-                editPoint = null;
+                if (currentPolygon == null) {
+                    RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+                    currentLine = new Line(p, p);
+                    currentPolygon = new Polygon();
+                    currentPolygon.add(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
+                } else {
+
+                }
+
             }
-            if (allLines.size() > 0 && allLines.get(0) != null) {
-                ScreenPoint currentPoint = new ScreenPoint(e.getX(), e.getY());
-                Line closestLine = findLine(sc, allLines, new ScreenPoint(e.getX(), e.getY()), EPS);
+            /*if (allLines.size() > 0 && allLines.get(0) != null) {
+                points.ScreenPoint currentPoint = new points.ScreenPoint(e.getX(), e.getY());
+                figures.Line closestLine = findLine(sc, allLines, new points.ScreenPoint(e.getX(), e.getY()), EPS);
                 if (closestLine != null) {
                     if (isNear(sc, closestLine.getP1(), currentPoint, EPS)) {
                         editPoint = closestLine.getP1();
@@ -156,7 +177,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                         editPoint = closestLine.getP2();
                     }
                 }
-            }
+            }*/
         }
         repaint();
     }
@@ -167,24 +188,32 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             prevPoint = null;
         } else if (SwingUtilities.isLeftMouseButton(e)){
             if (currentLine != null) {
-                currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
-                allLines.add(currentLine);
-                currentLine = null;
+                if (isNear(sc, currentPolygon.getFirstPoint(), new ScreenPoint(e.getX(), e.getY()), EPS)) {
+                    currentLine.setP2(currentPolygon.getFirstPoint());
+                    allLines.add(currentLine);
+                    currentLine = null;
+                    allPolygons.add(currentPolygon);
+                    currentPolygon = null;
+                } else {
+                    currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
+                    allLines.add(currentLine);
+                    currentLine = null;
+                    currentPolygon.add(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
+                }
                 repaint();
-            }
-            if (editPoint != null) {
-                RealPoint rp = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-                editPoint.setX(rp.getX());
-                editPoint.setY(rp.getY());
-                editPoint = null;
+            } else if (allPolygons != null) {
+                editPolygon = findPolygon(sc, allPolygons,  new ScreenPoint(e.getX(), e.getY()), EPS);
+                if (editPolygon != null) {
+
+                }
             }
         } else if (SwingUtilities.isMiddleMouseButton(e)) {
-            if (editingLine != null) {
-                if (closeToLine(sc, editingLine, new ScreenPoint(e.getX(), e.getY()), EPS)) {
+            /*if (editingLine != null) {
+                if (closeToLine(sc, editingLine, new points.ScreenPoint(e.getX(), e.getY()), EPS)) {
                     allLines.remove(editingLine);
                     editingLine = null;
                 }
-            }
+            }*/
         }
         repaint();
     }
@@ -212,11 +241,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             if (currentLine != null) {
                 currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
             }
-            if (editPoint != null) {
-                RealPoint rp = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-                editPoint.setX(rp.getX());
-                editPoint.setY(rp.getY());
-            }
+
         }
         repaint();
 
@@ -224,7 +249,10 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mouseMoved(MouseEvent e) {
-
+        if (currentPolygon != null) {
+            currentLine = new Line(currentPolygon.getLastPoint(), sc.s2r(new ScreenPoint(e.getX(), e.getY())));
+        }
+        repaint();
     }
 
     private static final double SCALE_STEP = 0.1;
