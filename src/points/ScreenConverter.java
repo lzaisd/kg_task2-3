@@ -37,6 +37,24 @@ public class ScreenConverter {
         rh *= s;
     }
 
+    public int r2sForXLine(double length) {
+        double newLength = length / rw * sw;
+        return (int) newLength;
+    }
+
+    public int r2sForYLine(double length) {
+        double newLength = length / rh * sh;
+        return (int) newLength;
+    }
+
+    public double s2rForXLine(int length) {
+        return (double) length / sw * rw;
+    }
+
+    public double s2rForYLine(int length) {
+        return (double) length / sh * rh;
+    }
+
     public double getCx() {
         return cx;
     }

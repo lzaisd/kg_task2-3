@@ -2,7 +2,6 @@ package figures;
 
 import points.RealPoint;
 
-import java.awt.*;
 import java.util.ArrayList;
 
 
@@ -15,10 +14,6 @@ public class Polygon {
 
     public ArrayList<RealPoint> getPointList() {
         return pointList;
-    }
-
-    public void setPointList(ArrayList<RealPoint> pl) {
-        this.pointList = pl;
     }
 
     public void add(RealPoint p) {
@@ -52,6 +47,7 @@ public class Polygon {
                 maxY = this.getPointList().get(i).getY();
             }
         }
-        return new DescribingRectangle(minX, maxX, minY, maxY);
+        RealPoint upLeft = new RealPoint(minX, maxY);
+        return new DescribingRectangle(upLeft, maxX - minX, maxY - minY);
     }
 }

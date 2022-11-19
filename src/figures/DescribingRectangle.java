@@ -2,14 +2,38 @@ package figures;
 
 import points.RealPoint;
 
-import java.util.ArrayList;
+public class DescribingRectangle {
+    private RealPoint upLeftP;
+    private double width;
+    private double height;
 
-public class DescribingRectangle extends Polygon{
-    public DescribingRectangle(double minX, double maxX, double minY, double maxY) {
-        this.pointList = new ArrayList<>();
-        this.pointList.add(new RealPoint(minX, minY));
-        this.pointList.add(new RealPoint(minX, maxY));
-        this.pointList.add(new RealPoint(maxX, maxY));
-        this.pointList.add(new RealPoint(maxX, minY));
+    public DescribingRectangle(RealPoint upLeftP, double width, double height) {
+        this.upLeftP = upLeftP;
+        this.width = width;
+        this.height = height;
+    }
+
+    public RealPoint getUpLeftP() {
+        return upLeftP;
+    }
+
+    public void setUpLeftP(RealPoint upLeftP) {
+        this.upLeftP = upLeftP;
+    }
+
+    public double getWidth() {
+        return width;
+    }
+
+    public void setWidth(double width) {
+        this.width = width;
+    }
+
+    public double getHeight() {
+        return height;
+    }
+
+    public void setHeight(double height) {
+        this.height = height;
     }
 }

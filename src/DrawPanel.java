@@ -24,7 +24,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private DescribingRectangle descRect = null;
 
 
-    private final int EPS = 5;
+    private final int EPS = 10;
 
     public DrawPanel() {
         sc = new ScreenConverter(-2, 2, 4, 4, 800, 600);
@@ -89,9 +89,17 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private static void drawDescribingRect(Graphics2D g, ScreenConverter sc, DescribingRectangle dRect, Color c) {
         DDALineDrawer dda = new DDALineDrawer(new GraphicsPixelDrawer(g));
 //        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
-        for (int i = 0; i < dRect.getPointList().size() - 1; i++) {
-            dda.drawLine((int) dRect.getPointList().get(i).getX(), (int) dRect.getPointList().get(i).getY(), (int) dRect.getPointList().get(i + 1).getX(), (int) dRect.getPointList().get(i + 1).getY(), c);
-        }
+        ScreenPoint sp = sc.r2s(dRect.getUpLeftP());
+        int spX = sp.getC();
+        int spY = sp.getR();
+        int width = sc.r2sForXLine(dRect.getWidth());
+        int height = sc.r2sForXLine(dRect.getHeight());
+
+        dda.drawLine(spX, spY, spX + width, spY, c);
+        dda.drawLine(spX + width, spY + height, spX + width, spY, c);
+        dda.drawLine(spX + width, spY + height, spX, spY + height, c);
+        dda.drawLine(spX, spY, spX, spY + height, c);
+
     }
 
     private static void drawPolygon(Graphics2D g, ScreenConverter sc, Polygon poly, Color c) {
@@ -147,7 +155,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     private static figures.Polygon findPolygon(ScreenConverter sc, java.util.List<figures.Polygon> polygons, ScreenPoint searchPoint, int eps) {
         for (figures.Polygon poly : polygons) {
-            for (int i = 1; i < poly.getPointList().size() - 1; i++) {
+            for (int i = 0; i < poly.getPointList().size(); i++) {
                 /*if (closeToLine(sc, new Line(poly.getPointList().get(i - 1), poly.getPointList().get(i)), searchPoint, eps)) {
                     return poly;
                 }*/
@@ -169,29 +177,23 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if (SwingUtilities.isRightMouseButton(e)) {
-            prevPoint = new ScreenPoint(e.getX(), e.getY());
-        } else if (SwingUtilities.isLeftMouseButton(e)) {
-            if (currentLine == null) {
-                RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-                currentLine = new Line(p, p);
-                currentPolygon = new Polygon();
-                currentPolygon.add(p);
-            } else if (allPolygons.size() != 0) {
-                Polygon edit = findPolygon(sc, allPolygons, new ScreenPoint(e.getX(), e.getY()), EPS);
-                if (edit != null) {
-                    descRect = edit.getDescRect();
-                    editPolygon = edit;
-                } else editPolygon = null;
-            }
-        }
-        repaint();
+
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
             prevPoint = null;
+            if (allPolygons != null && currentPolygon == null) {
+                Polygon edit = findPolygon(sc, allPolygons, new ScreenPoint(e.getX(), e.getY()), EPS);
+                if (edit != null) {
+                    descRect = edit.getDescRect();
+                    editPolygon = edit;
+                } else {
+                    editPolygon = null;
+                    descRect = null;
+                }
+            }
         } else if (SwingUtilities.isLeftMouseButton(e)) {
             if (currentLine != null) {
                 if ( isNear(sc, currentPolygon.getFirstPoint(), new ScreenPoint(e.getX(), e.getY()), EPS)) {
@@ -234,17 +236,24 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     @Override
     public void mouseDragged(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
-            ScreenPoint curPoint = new ScreenPoint(e.getX(), e.getY());
-            RealPoint p1 = sc.s2r(curPoint);
-            RealPoint p2 = sc.s2r(prevPoint);
-            RealPoint delta = p2.minus(p1);
-            sc.moveCorner(delta);
-            prevPoint = curPoint;
+            prevPoint = new ScreenPoint(e.getX(), e.getY());
+//            if (descRect != null) {
+//                ScreenPoint p = new ScreenPoint(e.getX(), e.getY());
+//                double width = Math.abs(p.getC() - descRect.getUpLeftP().getX());
+//                double height = Math.abs(p.getR() - descRect.getUpLeftP().getY());
+//                descRect.setWidth(width);
+//                descRect.setHeight(height);
+//            }
         } else if (SwingUtilities.isLeftMouseButton(e)) {
-            if (currentLine != null && allPolygons.size() == 0) {
+            descRect = null;
+            if (currentLine == null) {
+                RealPoint p = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+                currentLine = new Line(p, p);
+                currentPolygon = new Polygon();
+                currentPolygon.add(p);
+            } else {
                 currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
             }
-
         }
         repaint();
 
