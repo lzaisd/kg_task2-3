@@ -3,13 +3,16 @@ package figures;
 import points.RealPoint;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class Polygon {
     protected ArrayList<RealPoint> pointList;
+    private DescribingRectangle descRect;
 
     public Polygon() {
         this.pointList = new ArrayList<>();
+        this.descRect = null;
     }
 
     public ArrayList<RealPoint> getPointList() {

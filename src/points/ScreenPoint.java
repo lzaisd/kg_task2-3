@@ -7,6 +7,10 @@ public class ScreenPoint {
         this.r = r;
         this.c = c;
     }
+    public ScreenPoint() {
+        this.r = 0;
+        this.c = 0;
+    }
 
     public int getR() {
         return r;

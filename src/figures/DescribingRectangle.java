@@ -36,4 +36,17 @@ public class DescribingRectangle {
     public void setHeight(double height) {
         this.height = height;
     }
+
+    public RealPoint getBottomMiddle() {
+        return new RealPoint(upLeftP.getX() + width / 2, upLeftP.getY() - height);
+    }
+//    public RealPoint getUpMiddle() {
+//        return upMiddle;
+//    }
+//    public RealPoint getRightMiddle() {
+//        return new RealPoint(upLeftP.getX() + width / 2, upLeftP.getY() - height / 2);
+//    }
+//    public RealPoint getLeftMiddle() {
+//        return leftMiddle;
+//    }
 }
