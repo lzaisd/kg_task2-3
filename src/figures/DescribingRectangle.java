@@ -43,9 +43,9 @@ public class DescribingRectangle {
 //    public RealPoint getUpMiddle() {
 //        return upMiddle;
 //    }
-//    public RealPoint getRightMiddle() {
-//        return new RealPoint(upLeftP.getX() + width / 2, upLeftP.getY() - height / 2);
-//    }
+    public RealPoint getRightMiddle() {
+        return new RealPoint(upLeftP.getX() + width, upLeftP.getY() - height / 2);
+    }
 //    public RealPoint getLeftMiddle() {
 //        return leftMiddle;
 //    }

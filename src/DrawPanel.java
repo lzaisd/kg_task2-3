@@ -18,7 +18,6 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private final Line oy;
     private Line currentLine = null;
     private figures.Polygon currentPolygon = null;
-    private java.util.List<Line> allLines = new ArrayList<>();
     private java.util.List<figures.Polygon> allPolygons = new ArrayList<>();
     private figures.Polygon editPolygon = null;
     private DescribingRectangle descRect = null;
@@ -54,19 +53,15 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         if (currentPolygon != null) {
             drawCurPolygon(g, sc, currentPolygon, Color.black);
         }
-
         if (currentLine != null) {
             drawLine(g, sc, currentLine, Color.red);
         }
-
         if (editPolygon != null) {
             drawPolygon(g, sc, editPolygon, new Color(229, 0, 255));
         }
-
         if (descRect != null) {
             drawDescribingRect(g, sc, descRect, Color.green);
         }
-
 
         origG.drawImage(bi, 0, 0, null);
         g.dispose();
@@ -86,21 +81,34 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 //        BresenhamLineDrawer br = new BresenhamLineDrawer(new GraphicsPixelDrawer(g));
         ScreenPoint sp = sc.r2s(dRect.getUpLeftP());
         ScreenPoint bm = sc.r2s(dRect.getBottomMiddle());
+        ScreenPoint rm = sc.r2s(dRect.getRightMiddle());
         int spX = sp.getC();
         int spY = sp.getR();
         int width = sc.r2sForXLine(dRect.getWidth());
         int height = sc.r2sForYLine(dRect.getHeight());
         int bmX = bm.getC();
         int bmY = bm.getR();
+        int rmX = rm.getC();
+        int rmY = rm.getR();
 
         g.setColor(c);
         g.fillRect(bmX - 2, bmY - 2, 4, 4);
+        g.setColor(c);
+        g.fillRect(rmX - 2, rmY - 2, 4, 4);
 
         dda.drawLine(spX, spY, spX + width, spY, c);
         dda.drawLine(spX + width, spY + height, spX + width, spY, c);
         dda.drawLine(spX + width, spY + height, spX, spY + height, c);
         dda.drawLine(spX, spY, spX, spY + height, c);
 
+    }
+
+    private static boolean closeToRect(ScreenConverter sc, DescribingRectangle dRect, ScreenPoint searchPoint) {
+        RealPoint a = dRect.getUpLeftP();
+        RealPoint b = new RealPoint(dRect.getUpLeftP().getX() + dRect.getWidth(), dRect.getUpLeftP().getY());
+        RealPoint c = new RealPoint(dRect.getUpLeftP().getX() + dRect.getWidth(), dRect.getUpLeftP().getY() - dRect.getHeight());
+        RealPoint d = new RealPoint(dRect.getUpLeftP().getX(), dRect.getUpLeftP().getY() - dRect.getHeight());
+        return (isNear(sc, a, searchPoint) || isNear(sc, b, searchPoint) || isNear(sc, c, searchPoint) || isNear(sc, d, searchPoint));
     }
 
     private static void drawPolygon(Graphics2D g, ScreenConverter sc, Polygon poly, Color c) { //todo выбор drawer'а в интерфейсе
@@ -116,6 +124,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             dda.drawLine(a.getC(), a.getR(), b.getC(), b.getR(), c);
         }
     }
+
     private static void drawCurPolygon(Graphics2D g, ScreenConverter sc, Polygon poly, Color c) {
         DDALineDrawer dda = new DDALineDrawer(new GraphicsPixelDrawer(g));
         for (int i = 0; i < poly.getPointList().size() - 1; i++) {
@@ -125,23 +134,15 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         }
     }
 
-
-    private static boolean isNear(ScreenConverter sc, RealPoint rp, ScreenPoint sp, int eps) {
+    private static boolean isNear(ScreenConverter sc, RealPoint rp, ScreenPoint sp) {
         ScreenPoint p = sc.r2s(rp);
-        return eps * eps > (p.getR() - sp.getR()) * (p.getR() - sp.getR()) + (p.getC() - sp.getC()) * (p.getC() - sp.getC());
-    }
-
-    private static boolean isPointInRect(ScreenPoint pr1, ScreenPoint pr2, ScreenPoint cp) {
-        return cp.getC() >= Math.min(pr1.getC(), pr2.getC()) &&
-                cp.getC() <= Math.max(pr1.getC(), pr2.getC()) &&
-                cp.getR() >= Math.min(pr1.getR(), pr2.getR()) &&
-                cp.getR() <= Math.max(pr1.getR(), pr2.getR());
+        return DrawPanel.EPS * DrawPanel.EPS > (p.getR() - sp.getR()) * (p.getR() - sp.getR()) + (p.getC() - sp.getC()) * (p.getC() - sp.getC());
     }
 
     private static figures.Polygon findPolygon(ScreenConverter sc, java.util.List<figures.Polygon> polygons, ScreenPoint searchPoint) {
         for (figures.Polygon poly : polygons) {
             for (int i = 0; i < poly.getPointList().size(); i++) {
-                if (isNear(sc, poly.getPointList().get(i), searchPoint, EPS)) {
+                if (isNear(sc, poly.getPointList().get(i), searchPoint)) {
                     return poly;
                 }
             }
@@ -156,11 +157,11 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         double height = descRect.getHeight();
         double xCoef = (rp.getX() - upLeftX) / width;
         double yCoef = (upLeftY - rp.getY()) / height;
-        rp.setX(rp.getX() + xCoef * widthD);
+        rp.setX(rp.getX() - xCoef * widthD);
         rp.setY(rp.getY() + yCoef * heightD);
     }
 
-    private static void changePolyPosition(DescribingRectangle descRect, Polygon poly, double widthD, double heightD){
+    private static void changePolyPosition(DescribingRectangle descRect, Polygon poly, double widthD, double heightD) {
         for (int i = 0; i < poly.getPointList().size(); i++) {
             changePointPosition(descRect, poly.getPointList().get(i), widthD, heightD);
         }
@@ -197,26 +198,28 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                     }
                 }
             } else {
-                ScreenPoint curP  = new ScreenPoint(e.getX(), e.getY());
-                if (isNear(sc, descRect.getBottomMiddle(), curP, EPS)) {
-                    currentPolygon = null;
-                    RealPoint upL = descRect.getUpLeftP();
-                    ScreenPoint upLeft = sc.r2s(upL);
-                    ScreenPoint downRight = sc.r2s(new RealPoint(upL.getX() + descRect.getWidth(), upL.getY() - descRect.getHeight()));
+                ScreenPoint curP = new ScreenPoint(e.getX(), e.getY());
+                currentPolygon = null;
+                RealPoint upL = descRect.getUpLeftP();
+                ScreenPoint upLeft = sc.r2s(upL);
+                ScreenPoint downRight = sc.r2s(new RealPoint(upL.getX() + descRect.getWidth(), upL.getY() - descRect.getHeight()));
 
-                    int screenWidth = downRight.getC() - upLeft.getC();
-                    int screenHeight = downRight.getR() - upLeft.getR();
+                int screenWidth = downRight.getC() - upLeft.getC();
+                int screenHeight = downRight.getR() - upLeft.getR();
 
-                    double width = sc.s2rForXLine(screenWidth);
-                    double height = sc.s2rForYLine(screenHeight);
+                double width = sc.s2rForXLine(screenWidth);
+                double height = sc.s2rForYLine(screenHeight);
 
-                    double widthD = descRect.getWidth() - width;
-                    double heightD = descRect.getHeight() - height;
-
+                double widthD = descRect.getWidth() - width;
+                double heightD = descRect.getHeight() - height;
+                if (isNear(sc, descRect.getBottomMiddle(), curP)) {
                     changePolyPosition(descRect, editPolygon, 0, heightD);
 
-                    descRect.setWidth(width);
                     descRect.setHeight(height);
+                } else if (isNear(sc, descRect.getRightMiddle(), curP)) {
+                    changePolyPosition(descRect, editPolygon, widthD, 0);
+
+                    descRect.setWidth(width);
                 } else {
                     allPolygons.add(editPolygon);
                     editPolygon = null;
@@ -225,15 +228,13 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             }
         } else if (SwingUtilities.isLeftMouseButton(e)) {
             if (currentLine != null) {
-                if ( isNear(sc, currentPolygon.getFirstPoint(), new ScreenPoint(e.getX(), e.getY()), EPS)) {
+                if (isNear(sc, currentPolygon.getFirstPoint(), new ScreenPoint(e.getX(), e.getY()))) {
                     currentLine.setP2(currentPolygon.getFirstPoint());
-                    allLines.add(currentLine);
                     currentLine = null;
                     allPolygons.add(currentPolygon);
                     currentPolygon = null;
                 } else {
                     currentLine.setP2(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
-                    allLines.add(currentLine);
                     currentLine = null;
                     currentPolygon.add(sc.s2r(new ScreenPoint(e.getX(), e.getY())));
                 }
@@ -241,13 +242,12 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
                 repaint();
             }
-        } else if (SwingUtilities.isMiddleMouseButton(e)) { //todo удаление многоугольника
-            /*if (editingLine != null) {
-                if (closeToLine(sc, editingLine, new points.ScreenPoint(e.getX(), e.getY()), EPS)) {
-                    allLines.remove(editingLine);
-                    editingLine = null;
-                }
-            }*/
+        } else if (SwingUtilities.isMiddleMouseButton(e)) {
+            ScreenPoint curP = new ScreenPoint(e.getX(), e.getY());
+            if (editPolygon != null && closeToRect(sc, descRect, curP)) {
+                editPolygon = null;
+                descRect = null;
+            }
         }
         repaint();
     }
@@ -269,17 +269,19 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
                 currentPolygon = null;
                 ScreenPoint p = new ScreenPoint(e.getX(), e.getY());
                 RealPoint leftCorner = descRect.getUpLeftP();
-                if (isNear(sc, descRect.getBottomMiddle(), p, EPS)) {
-                    ScreenPoint lc = sc.r2s(leftCorner);
-//                    double width = Math.abs(sc.s2rForXLine(p.getC() - lc.getC()));
-                    double height = Math.abs(sc.s2rForYLine(p.getR() - lc.getR()));
-
-//                    double widthD = descRect.getWidth() - width;
+                ScreenPoint lc = sc.r2s(leftCorner);
+                double width = Math.abs(sc.s2rForXLine(p.getC() - lc.getC()));
+                double height = Math.abs(sc.s2rForYLine(p.getR() - lc.getR()));
+                if (isNear(sc, descRect.getBottomMiddle(), p)) {
                     double heightD = descRect.getHeight() - height;
                     changePolyPosition(descRect, editPolygon, 0, heightD);
 
                     descRect.setHeight(height);
-//                    descRect.setWidth(width);
+                } else if (isNear(sc, descRect.getRightMiddle(), p)) {
+                    double widthD = descRect.getWidth() - width;
+                    changePolyPosition(descRect, editPolygon, widthD, 0);
+
+                    descRect.setWidth(width);
                 }
                 repaint();
 

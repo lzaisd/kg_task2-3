@@ -3,8 +3,6 @@ package figures;
 import points.RealPoint;
 
 import java.util.ArrayList;
-import java.util.List;
-
 
 public class Polygon {
     protected ArrayList<RealPoint> pointList;
