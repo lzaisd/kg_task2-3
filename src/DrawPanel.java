@@ -41,7 +41,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
         BufferedImage bi = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = bi.createGraphics();
-        LineDrawer ld = new DDALineDrawer(new GraphicsPixelDrawer(g));
+        LineDrawer ld = new WuLineDrawer(new GraphicsPixelDrawer(g));
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, getWidth(), getHeight());
 
