@@ -92,23 +92,23 @@ public class WuLineDrawer implements LineDrawer {
         }
 
         if (dx > dy) {
-//            gradient =  dy / dx;
-//            double intery = y1 + gradient;
-//            pd.drawPixel(x1, y1, Color.BLACK);
-//            for (int x = x1; x < x2; ++x) {
-//                if (fractionalPart(intery) * 255 > 255) {
-//                    pd.drawPixel(x, (int)intery, new Color(0, 0, 0, 0));
-//                    pd.drawPixel(x, (int)intery + 1,new Color(0, 0, 0, 0));
-//                } else if (fractionalPart(intery) * 255 < 0) {
-//                    pd.drawPixel(x, (int)intery, new Color(0, 0, 0, 255));
-//                    pd.drawPixel(x, (int)intery + 1,new Color(0, 0, 0, 255));
-//                } else {
-//                    pd.drawPixel(x, (int) intery, new Color(0, 0, 0, (int) (255 - fractionalPart(intery) * 255)));
-//                    pd.drawPixel(x, (int) intery + 1, new Color(0, 0, 0, (int) (fractionalPart(intery) * 255)));
-//                }
-//                intery += gradient;
-//            }
-//            pd.drawPixel(x2, y2, Color.BLACK);
+            gradient =  dy / dx;
+            double intery = y1 + gradient;
+            pd.drawPixel(x1, y1, Color.BLACK);
+            for (int x = x1; x < x2; ++x) {
+                if (fPart(intery) * 255 > 255) {
+                    pd.drawPixel(x, (int)intery, new Color(0, 0, 0, 0));
+                    pd.drawPixel(x, (int)intery + 1,new Color(0, 0, 0, 0));
+                } else if (fPart(intery) * 255 < 0) {
+                    pd.drawPixel(x, (int)intery, new Color(0, 0, 0, 255));
+                    pd.drawPixel(x, (int)intery + 1,new Color(0, 0, 0, 255));
+                } else {
+                    pd.drawPixel(x, (int) intery, new Color(0, 0, 0, (int) (255 - fPart(intery) * 255)));
+                    pd.drawPixel(x, (int) intery + 1, new Color(0, 0, 0, (int) (fPart(intery) * 255)));
+                }
+                intery += gradient;
+            }
+            pd.drawPixel(x2, y2, Color.BLACK);
         } else {
             gradient = dx / dy;
             double interx = x1 + gradient;
